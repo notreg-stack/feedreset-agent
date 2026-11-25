@@ -1,0 +1,1 @@
+For a personal feed diagnosis or maintenance request, read and follow skills/feedreset/SKILL.md. Respond in the owner's language. For repository development, run python3 -m unittest discover -s tests and python3 demo.py. Use only fictional evidence in the checkout.
