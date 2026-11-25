@@ -6,7 +6,11 @@ Entregue à sua IA uma tarefa diária: manter o feed alinhado com o que você es
 
 > Abra https://github.com/notreg-stack/feedreset-agent e siga skills/feedreset/SKILL.md. Comece pela rede que mais uso. Examine recomendações consecutivas, mostre o que parece construtivo, dispersivo ou incerto e explique com exemplos. Depois me pergunte o que quero incentivar, reduzir ao máximo e sempre preservar. Aplique minhas escolhas e configure a manutenção diária se você puder executá-la.
 
-No Codex ou Claude Code, abra a pasta do projeto. Em um chat como Grok ou Claude, você pode anexar o arquivo da skill e os dois guias da pasta `references`. Se o chat não enxerga seu iPhone, bastam algumas capturas consecutivas da página inicial para começar. Você pode ocultar nomes, mensagens e notificações.
+No Codex ou Claude Code, abra a pasta do projeto. Em um chat como Grok ou Claude, você pode anexar o arquivo da skill e a pasta `references`. Se o chat não enxerga seu iPhone, bastam algumas capturas consecutivas da página inicial para começar. Você pode ocultar nomes, mensagens e notificações.
+
+## A pergunta já vem com opções
+
+**“No seu feed apareceram rumores de contratação em quatro de vinte posts e duas aulas práticas. Também quer reduzir brigas políticas, apostas ou vídeos de compras por impulso? O que devo incentivar e quem devo preservar?”** Os números aqui são fictícios. Na sua sessão, o agente usa o que realmente apareceu nas capturas do iPhone ou na aba do navegador. Você pode responder “corte rumores e apostas, mantenha o time do meu filho e acrescente cursos que prometem dinheiro rápido”. [Lógica das sugestões e fontes](skills/feedreset/references/interview.md)
 
 ## O que acontece depois
 

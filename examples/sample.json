@@ -2,6 +2,8 @@
   "sample": "home-demo-01",
   "day": "2026-01-01",
   "surface": "recommendations",
+  "device": "desktop",
+  "feed": "Home",
   "items": [
     {"id":"demo-a","label":"Rebuild a wheel with three tools","creator":"workshop-demo","topics":["worked examples"],"reason":"Shows each step and the finished wheel.","suggest":"encourage"},
     {"id":"demo-b","label":"An unnamed striker is about to sign","creator":"rumor-demo","topics":["transfer rumors"],"reason":"Repeats an unverified claim through a cliffhanger.","suggest":"reduce"},

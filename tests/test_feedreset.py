@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT/"skills/feedreset/scripts"
+sys.path.insert(0, str(SCRIPTS))
 
 
 def load(name):
@@ -118,6 +119,57 @@ class FeedResetTests(unittest.TestCase):
             else:
                 with self.assertRaisesRegex(ValueError, "whole-feed"):
                     tool.plan(self.db, scope, self.sample["sample"], "one-decision")
+
+    def test_personalized_menu_dedupes_and_handles_unlisted_patterns(self):
+        self.sample.update(device="iphone", feed="Home")
+        self.sample["items"][0]["topics"] = ["wheel building", "wheel building"]
+        tool.ingest(self.db, self.scope, self.sample)
+        self.db.commit()
+        for lang in ("pt", "en"):
+            result = self.cli("ask", self.sample["sample"], "--lang", lang)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            menu = json.loads(result.stdout)
+            self.assertEqual(menu["device"], "iphone")
+            self.assertEqual(menu["feed"], "Home")
+            seen = {o["topic"]:o for o in menu["observed"]}
+            self.assertEqual(seen["sports-rumors"]["observed_count"], 2)
+            self.assertEqual(seen["wheel building"]["observed_count"], 1)
+            self.assertEqual(seen["wheel building"]["examples"][0]["id"], "demo-a")
+            self.assertFalse(seen.keys() & {o["topic"] for o in menu["optional_reduce"]})
+        self.assertIsNone(tool.get_policy(self.db, self.scope))
+        self.sample["device"] = "desktop"
+        with self.assertRaisesRegex(ValueError, "another device"):
+            tool.ingest(self.db, self.scope, self.sample)
+
+    def test_selection_codes_custom_topics_protection_and_correction(self):
+        self.enroll()
+        self.db.commit()
+        sample = self.sample["sample"]
+        menu = json.loads(self.cli("ask", sample).stdout)
+        football = next(o["code"] for o in menu["observed"] if o["topic"] == "sports-rumors")
+        before = json.loads(self.cli("report").stdout)["policy"]
+        self.assertNotEqual(self.cli("answer", sample, "--keep", "O999").returncode, 0)
+        self.assertEqual(json.loads(self.cli("report").stdout)["policy"], before)
+        result = self.cli("answer", sample, "--keep", football, "--reduce", "hardware shopping", "--encourage", "E1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        policy = json.loads(result.stdout)
+        self.assertIn("sports-rumors", policy["keep_topics"])
+        self.assertNotIn("sports-rumors", policy["reduce"])
+        self.assertIn("hardware shopping", policy["reduce"])
+        self.assertTrue(policy["boost_sources"])
+        self.assertEqual(json.loads(self.cli("plan", sample).stdout)["counts"]["protect"], 2)
+
+    def test_general_menu_has_zero_personal_evidence(self):
+        menus = {}
+        for net in tool.NETWORKS:
+            menu = json.loads(self.cli("ask", network=net).stdout)
+            self.assertEqual(menu["sample_size"], 0)
+            self.assertEqual(menu["observed"], [])
+            menus[net] = [o["topic"] for o in menu["optional_reduce"]]
+        self.assertNotEqual(menus["x"], menus["youtube"])
+        expanded = json.loads(self.cli("ask", "--all").stdout)
+        self.assertGreater(len(expanded["optional_reduce"]), len(menus["youtube"]))
+        self.assertIn("all-football", [o["topic"] for o in expanded["optional_reduce"]])
 
     def test_takeout_recent_distinct_history(self):
         def row(video, date):

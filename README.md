@@ -10,7 +10,11 @@ Give an agent with repository access this prompt:
 
 > Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Start with my most-used feed. Show me concrete examples of what appears constructive, distracting or uncertain. Ask what I want to encourage, reduce and always keep. Then apply my choices as strongly as my account controls allow and set up a daily pass if your host can schedule it.
 
-**Claude Code and Codex:** open a checkout and send the prompt. **Claude, Grok or another chat:** share the skill and its two reference files, plus a few consecutive screenshots if the chat can't see the feed. On an iPhone, screenshots are enough for a first diagnosis. Account changes require a supported integration or native taps. A chat without a scheduler can give you a reusable policy card.
+**Claude Code and Codex:** open a checkout and send the prompt. **Claude, Grok or another chat:** share the skill and its references folder, plus a few consecutive screenshots if the chat can't see the feed. On an iPhone, screenshots are enough for a first diagnosis. Account changes require a supported integration or native taps. A chat without a scheduler can give you a reusable policy card.
+
+## A question grounded in your feed
+
+First come patterns actually seen on your iPhone or desktop browser, with examples and counts. Then come optional prompts for that network: cliffhanger clips, outrage bait, transfer rumors, betting promotions, impulse-shopping videos or productivity tips that never demonstrate the technique. Choose what to cut, what to increase, what to always keep, and add anything in your own words. [How the interview works and what the research supports](skills/feedreset/references/interview.md)
 
 ## What a diagnosis looks like
 

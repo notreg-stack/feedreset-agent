@@ -10,6 +10,10 @@ Run from the skill directory. Python 3.9+ and its standard library suffice. Each
 
 ```sh
 python3 scripts/feedreset.py --network youtube --account personal audit sample.json
+python3 scripts/feedreset.py --network youtube --account personal ask home-2026-06-05-a --lang pt
+# After the owner picks, use codes from that exact menu or custom topic strings.
+python3 scripts/feedreset.py --network youtube --account personal answer home-2026-06-05-a --reduce O1 "celebrity gossip" --keep "local club matches" --encourage "creative practice" --boost-sources
+# Alternatively, import the complete approved policy.
 python3 scripts/feedreset.py --network youtube --account personal policy policy.json
 python3 scripts/feedreset.py --network youtube --account personal plan home-2026-06-05-a
 python3 scripts/feedreset.py --network youtube --account personal record home-2026-06-05-a ACTION_ID verified "Observed YouTube's feedback confirmation on the exact video"
@@ -19,10 +23,10 @@ python3 scripts/feedreset.py --network youtube --account personal report
 Sample shape with a fictional item:
 
 ```json
-{"sample":"home-2026-06-05-a","day":"2026-06-05","surface":"recommendations","items":[{"id":"fictional-001","label":"Why the transfer deal is always one day away","creator":"demo-rumors","topics":["transfer rumors"],"reason":"Teases an unnamed signing and supplies no source.","suggest":"reduce"}]}
+{"sample":"home-2026-06-05-a","day":"2026-06-05","surface":"recommendations","device":"iphone","feed":"Home","items":[{"id":"fictional-001","label":"Why the transfer deal is always one day away","creator":"demo-rumors","topics":["transfer rumors"],"reason":"Teases an unnamed signing and supplies no source.","suggest":"reduce"}]}
 ```
 
-Allowed surfaces are `recommendations`, `following` and `history`. Allowed diagnostic suggestions are `encourage`, `reduce` and `uncertain`. The optional `url` is a public HTTPS permalink. Keep raw captions and viewer identifiers out of the ledger when a short label and reason suffice.
+Allowed surfaces are `recommendations`, `following` and `history`. Allowed diagnostic suggestions are `encourage`, `reduce` and `uncertain`. Use `device` (`iphone`, `desktop`, `other` or `unknown`) and `feed` (e.g. Home, Reels, For You) to preserve the capture context. The optional `url` is a public HTTPS permalink. Keep raw captions and viewer identifiers out of the ledger when a short label and reason suffice.
 
 ```json
 {"encourage":["worked examples","match analysis"],"reduce":["transfer rumors"],"protect":["my-friend"],"boost_sources":true,"repair_youtube_history":true}
@@ -33,3 +37,5 @@ Allowed surfaces are `recommendations`, `following` and `history`. Allowed diagn
 For a separately confirmed Instagram/TikTok reset, attach the same one-shot ID to both `plan SAMPLE --reset-request ID` and `record SAMPLE ACTION_ID OUTCOME EVIDENCE --reset-request ID`. Use an ID tied to the person's specific decision. Never mint a fresh ID to repeat a previous decision. After an interrupted reset, check live state and the last receipt first.
 
 For a YouTube Takeout export, select YouTube watch history in JSON and unzip it privately. Extract local evidence with `python3 scripts/takeout.py /path/to/watch-history.json --limit 20`. The helper selects the latest distinct videos and retains their timestamps. Classify the resulting rows before audit and separate observation dates. If the owner supplies HTML, screenshots or a different export shape, describe the evidence you can read directly.
+
+Use `ask --all` (or `ask SAMPLE --all`) to expand the optional catalog. Omitting the sample produces general suggestions only. The `answer` command merges selected topics into the existing policy. A topic selected with `--keep` is always preserved, including on an otherwise mixed post. Protected creators use `--protect`. When collecting input without a CLI, use [the interview guide](interview.md).

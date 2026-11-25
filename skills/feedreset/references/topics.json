@@ -1,0 +1,32 @@
+{
+  "first": {
+    "instagram":["endless-clips","body-comparison","celebrity-gossip","impulse-shopping","ragebait"],
+    "youtube":["endless-clips","empty-tutorials","sensational-news","sports-rumors","quick-money"],
+    "tiktok":["endless-clips","impulse-shopping","body-comparison","betting-promos","ragebait"],
+    "x":["ragebait","political-fights","sensational-news","sports-rumors","quick-money"]
+  },
+  "topics":[
+    ["endless-clips","reduce","Sequências de Reels, Shorts ou clipes com suspense e pouca entrega","Cliffhanger Reels, Shorts or clip chains with little payoff",["cliffhanger clips","rolagem de clipes"]],
+    ["ragebait","reduce","Posts feitos para provocar raiva, humilhar ou puxar briga","Outrage bait, humiliation and pile-ons",["rage bait","indignação fabricada"]],
+    ["political-fights","reduce","Briga político-partidária e guerra ideológica repetitiva","Repetitive partisan fights and ideological feuds",["political fights","briga partidária"]],
+    ["sensational-news","reduce","Manchetes alarmistas e atualizações repetidas da mesma crise","Alarmist headlines and recycled crisis updates",["alarmist headlines","manchetes alarmistas"]],
+    ["sports-rumors","reduce","Rumores de futebol, mercado da bola e rivalidades fabricadas","Transfer rumors and manufactured sports rivalries",["transfer rumors","football transfer gossip","mercado da bola"]],
+    ["betting-promos","reduce","Palpites de aposta, cassino e promessa de ganho garantido","Betting tips, casino promotions and guaranteed wins",["betting tips","palpites de aposta"]],
+    ["celebrity-gossip","reduce","Fofoca de celebridades e conflitos de influenciadores","Celebrity gossip and influencer feuds",["celebrity gossip","fofoca de celebridades"]],
+    ["body-comparison","reduce","Comparações de aparência, peso ou luxo que alimentam insatisfação","Appearance, weight or luxury comparisons that leave you dissatisfied",["appearance comparisons","comparação de aparência"]],
+    ["impulse-shopping","reduce","Achadinhos, ofertas-relâmpago e compras por impulso","Hauls, flash deals and impulse-shopping prompts",["flash deals","achadinhos"]],
+    ["quick-money","reduce","Promessas de dinheiro rápido, sinais de cripto e gurus financeiros","Get-rich-quick pitches, crypto calls and financial gurus",["get rich quick","dinheiro rápido"]],
+    ["empty-tutorials","reduce","Produtividade ou IA de fachada: listas de truques sem demonstração","Productivity or AI tips with no worked demonstration",["hollow productivity tips","produtividade de fachada"]],
+    ["sexualized-bait","reduce","Iscas sexualizadas que a pessoa prefere tirar do feed","Sexualized clickbait the viewer wants off their feed",["sexualized clickbait","iscas sexualizadas"]],
+    ["gaming-loops","reduce","Clipes de jogos, recompensas e loot boxes que puxam outra rodada","Gaming clip chains, rewards and loot-box reveals",["loot boxes","gaming clip chains"]],
+    ["all-football","reduce","Futebol em geral, inclusive partidas e comentários, se preferir cortar o tema inteiro","Football including matches and commentary, if you want to cut the entire subject",["futebol","soccer","association football"]],
+    ["all-politics","reduce","Política em geral, inclusive cobertura factual, se preferir cortar o tema inteiro","Political content including factual reporting, if you want to cut the entire subject",["política","politics"]],
+    ["conspiracy-loops","reduce","Teorias conspiratórias e sequências de revelações sem evidências","Conspiracy rabbit holes and repeated revelations without evidence",["conspiracy rabbit holes","teorias conspiratórias"]],
+    ["worked-examples","encourage","Tutoriais completos com demonstração e resultado","Worked examples with a demonstration and result",["worked examples","exemplos práticos"]],
+    ["creative-practice","encourage","Projetos para praticar uma habilidade, criar ou treinar","Hands-on projects, creative practice and training",["creative practice","prática criativa"]],
+    ["firsthand-evidence","encourage","Fontes primárias, pesquisa e relatos de quem fez o trabalho","Primary sources, research and first-hand accounts",["primary sources","fontes primárias"]],
+    ["friends-originals","encourage","Conteúdo autoral de amigos e pessoas que importam","Original posts from friends and people who matter",["friends' original posts","conteúdo autoral de amigos"]],
+    ["chosen-leisure","encourage","Lazer escolhido de propósito: música, humor, esporte ou arte","Deliberately chosen leisure: music, comedy, sport or art",["intentional leisure","lazer escolhido"]],
+    ["reasoned-disagreement","encourage","Análises que mostram evidências e discordam com argumentos","Evidence-based analysis and thoughtful disagreement",["reasoned disagreement","debate fundamentado"]]
+  ]
+}

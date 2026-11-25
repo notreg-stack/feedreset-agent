@@ -10,6 +10,7 @@ import unicodedata
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
+from questionnaire import apply_answers, canonical, menu
 
 NETWORKS = ("instagram", "youtube", "tiktok", "x")
 KINDS = ("encourage", "reduce", "uncertain")
@@ -20,6 +21,8 @@ CREATE TABLE IF NOT EXISTS samples (
   scope TEXT, sample TEXT, day TEXT, surface TEXT, data TEXT,
   PRIMARY KEY(scope,sample));
 CREATE TABLE IF NOT EXISTS policies (scope TEXT PRIMARY KEY, data TEXT);
+CREATE TABLE IF NOT EXISTS contexts (
+  scope TEXT, sample TEXT, device TEXT, feed TEXT, PRIMARY KEY(scope,sample));
 CREATE TABLE IF NOT EXISTS actions (
   scope TEXT, id TEXT, control TEXT, target TEXT, evidence TEXT, outcome TEXT,
   last_sample TEXT, PRIMARY KEY(scope,id));
@@ -85,11 +88,14 @@ def get_policy(db, scope):
 
 def put_policy(db, scope, raw):
     require(isinstance(raw, dict), "Expected a policy object")
-    keys = {"encourage", "reduce", "protect", "repair_youtube_history", "boost_sources"}
+    keys = {"encourage", "reduce", "protect", "keep_topics", "repair_youtube_history", "boost_sources"}
     require(set(raw) <= keys, "Unknown policy field")
-    policy = {k: tags(raw.get(k, []), k) for k in ("encourage", "reduce", "protect")}
+    policy = {k: sorted({canonical(t) for t in tags(raw.get(k, []), k)})
+              for k in ("encourage", "reduce", "keep_topics")}
+    policy["protect"] = tags(raw.get("protect", []), "protect")
     policy["protect"] = sorted({name.lstrip("@") for name in policy["protect"]})
-    require(not set(policy["encourage"]) & set(policy["reduce"]), "Conflicting topic choices")
+    all_topics = policy["encourage"] + policy["reduce"] + policy["keep_topics"]
+    require(len(all_topics) == len(set(all_topics)), "Conflicting topic choices")
     repair = raw.get("repair_youtube_history", False)
     require(isinstance(repair, bool), "repair_youtube_history must be true or false")
     require(not repair or scope.startswith("youtube/"), "History repair is specific to YouTube")
@@ -107,6 +113,9 @@ def ingest(db, scope, raw):
     require(day == date.fromisoformat(day).isoformat() and day <= date.today().isoformat(),
             "Use the local observation date, YYYY-MM-DD")
     require(surface in SURFACES, "Unknown surface")
+    device = raw.get("device", "unknown")
+    require(device in ("iphone", "desktop", "other", "unknown"), "Invalid device")
+    feed = string(raw.get("feed", surface), "feed")
     require(isinstance(raw.get("items"), list) and raw["items"], "Supply at least one real item")
     items = [normalize_item(i) for i in raw["items"]]
     require(len({i["id"] for i in items}) == len(items), "Repeated item id within sample")
@@ -115,10 +124,13 @@ def ingest(db, scope, raw):
                           (scope, sample)).fetchone()
     if existing:
         require(tuple(existing) == (day, surface, data), "Sample id already used for different evidence")
+        context = db.execute("SELECT device,feed FROM contexts WHERE scope=? AND sample=?", (scope, sample)).fetchone()
+        require(context is None or tuple(context) == (device, feed), "Sample id already used for another device or feed")
     else:
         db.execute("INSERT INTO samples VALUES (?,?,?,?,?)", (scope, sample, day, surface, data))
+    db.execute("INSERT OR IGNORE INTO contexts VALUES (?,?,?,?)", (scope, sample, device, feed))
     counts = {k: sum(i["suggest"] == k for i in items) for k in KINDS}
-    return {"sample": sample, "surface": surface, "total": len(items),
+    return {"sample": sample, "surface": surface, "device": device, "feed": feed, "total": len(items),
             "diagnostic_suggestions": counts, "examples": [
                 {"label": i["label"], "reason": i["reason"], "suggest": i["suggest"]} for i in items]}
 
@@ -129,12 +141,19 @@ def sample_data(db, scope, sample):
     return row, json.loads(row["data"])
 
 
+def sample_context(db, scope, row):
+    context = db.execute("SELECT device,feed FROM contexts WHERE scope=? AND sample=?", (scope, row["sample"])).fetchone()
+    return dict(context) if context else {"device": "unknown", "feed": row["surface"]}
+
+
 def decision(item, policy):
     if norm(item["creator"]).lstrip("@") in policy["protect"]:
         return "protect"
-    topics = set(item["topics"])
-    positive = topics.intersection(policy["encourage"])
-    negative = topics.intersection(policy["reduce"])
+    topics = {canonical(t) for t in item["topics"]}
+    if topics.intersection(policy.get("keep_topics", [])):
+        return "protect"
+    positive = topics.intersection(canonical(t) for t in policy["encourage"])
+    negative = topics.intersection(canonical(t) for t in policy["reduce"])
     if positive and not negative:
         return "encourage"
     if negative and not positive:
@@ -219,7 +238,7 @@ def report(db, scope):
         counts = None if policy is None else {
             k: sum(decision(i, policy) == k for i in items) for k in (*KINDS, "protect")}
         observations.append({"sample": row["sample"], "day": row["day"], "surface": row["surface"],
-                             "n": len(items), "under_current_choices": counts})
+                             **sample_context(db, scope, row), "n": len(items), "under_current_choices": counts})
     receipts = db.execute("SELECT control,target,outcome,evidence,last_sample FROM actions WHERE scope=? ORDER BY rowid",
                           (scope,))
     return {"scope": scope, "policy": policy, "samples": observations, "actions": [dict(r) for r in receipts]}
@@ -233,6 +252,17 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("audit", "policy"):
         commands.add_parser(name).add_argument("file", help="JSON path, or - for stdin")
+    for name in ("ask", "answer"):
+        sub = commands.add_parser(name)
+        sub.add_argument("sample", nargs="?", help="Omit to use general prompts only")
+        if name == "ask":
+            sub.add_argument("--lang", choices=("pt","en"), default="pt")
+            sub.add_argument("--all", action="store_true", help="Show every optional topic")
+        else:
+            for field in ("reduce", "encourage", "keep", "protect"):
+                sub.add_argument("--"+field, action="extend", nargs="+", default=[])
+            for field in ("boost-sources", "repair-youtube-history"):
+                sub.add_argument("--"+field, action=argparse.BooleanOptionalAction, default=None)
     for name in ("plan", "record"):
         sub = commands.add_parser(name)
         sub.add_argument("sample")
@@ -253,6 +283,20 @@ def main():
                 result = ingest(db, scope, read_json(args.file))
             elif args.command == "policy":
                 result = put_policy(db, scope, read_json(args.file))
+            elif args.command in ("ask", "answer"):
+                row, items = sample_data(db, scope, args.sample) if args.sample else (None, [])
+                if args.command == "ask":
+                    result = menu(args.network, items, args.lang, args.all)
+                    result.update(scope=scope, sample=args.sample)
+                    if row:
+                        result.update(sample_context(db, scope, row))
+                else:
+                    choices = apply_answers(get_policy(db, scope), menu(args.network, items, expanded=True),
+                                            args.reduce, args.encourage, args.keep, args.protect)
+                    for flag in ("boost_sources", "repair_youtube_history"):
+                        if getattr(args, flag) is not None:
+                            choices[flag] = getattr(args, flag)
+                    result = put_policy(db, scope, choices)
             elif args.command == "plan":
                 result = plan(db, scope, args.sample, args.reset_request)
             elif args.command == "record":

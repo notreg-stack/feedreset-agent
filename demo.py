@@ -20,7 +20,16 @@ def main():
         print("FeedReset • fictional YouTube Home • offline demo")
         for item in audit["examples"]:
             print(f"  {item['suggest']:10}  {item['label']} — {item['reason']}")
-        run("policy", str(ROOT/"examples/choices.json"))
+        menu = run("ask", audit["sample"], "--lang", "en")
+        print("\nSeen in this feed:")
+        for option in menu["observed"]:
+            print(f"  {option['code']}  {option['label']} ({option['observed_count']}/{menu['sample_size']})")
+        print("Other optional patterns on YouTube:")
+        for option in menu["optional_reduce"][:3]:
+            print(f"  {option['code']}  {option['label']}")
+        print(menu["question"])
+        run("answer", audit["sample"], "--reduce", "transfer rumors", "--encourage", "worked examples",
+            "--protect", "my-friend", "--boost-sources", "--repair-youtube-history")
         result = run("plan", audit["sample"])
         print("\nDemo owner: more worked examples, less transfer gossip; keep my friend.")
         print("Current feed:", result["counts"])
