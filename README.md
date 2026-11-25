@@ -1,24 +1,28 @@
 # FeedReset
 
-**Cut the content you keep getting pulled back into. Make room for what you want to cultivate in your life.** FeedReset gives your AI an interview and tools to do both. It inspects your Instagram, YouTube, TikTok or X feed, asks what unwanted habits crowd out, and finds sources that help you act on your answer. A goal can be missing from every post in your feed.
+**Cut the distractions that keep coming back. Put work worth learning from in their place.** Give your AI access to the feeds you use. It diagnoses Instagram, YouTube, TikTok and X together, builds a substantial reconstruction plan from the available history, and maintains it daily. Its editorial target is **95% reorientation of the sampled feed mix toward substantive content**.
 
-[Guia em português](README.pt-BR.md) · [Download the skill](https://github.com/notreg-stack/feedreset-agent/releases/latest) · [What each network allows](skills/feedreset/references/platforms.md)
+[Português](README.pt-BR.md) · [Download the agent](https://github.com/notreg-stack/feedreset-agent/releases/latest) · [How 95% is measured](skills/feedreset/references/intentional.md)
 
-## Try it with your AI
+## Give this to your AI
 
-Give an agent with repository access this prompt:
+> Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Audit all my available feeds and history. Cut memes, viral entertainment, repetitive comedy, politics and football. Find the virtuous practice, real economic work and technical depth I've already engaged with. Rebuild around stronger sources, preserve my exceptions and maintain the result daily. Act on the evidence and ask only when my answer would materially change a decision.
 
-> Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Find what keeps pulling me back against my intentions. Ask me questions to discover what I want to cultivate instead, even if it never appears in my feed. Find content I can act on, apply my choices where my account permits and maintain them daily.
+For Codex or Claude Code, open a checkout. For a chat such as Grok or Claude, share the skill and its references. Supported account tools can read and act; iPhone screenshots can establish what appeared on screen. Daily access and writes depend on the host's integrations.
 
-**Claude Code and Codex:** open a checkout and send the prompt. **Claude, Grok or another chat:** share the skill and its references folder, plus a few consecutive screenshots if the chat can't see the feed. On an iPhone, screenshots are enough for a first diagnosis. Account changes require a supported integration or native taps. A chat without a scheduler can give you a reusable policy card.
+## What the first pass delivers
 
-## From an unwanted habit to something worth doing
+| Stage | What the agent does |
+| --- | --- |
+| Diagnose all accounts | Samples actual recommendations and reads watch/open history separately. Marks missing access and keeps going. |
+| Build the plan | Identifies recurring unwanted patterns and hunts for constructive history: an operator's first-hand case, a demonstrated technical fix, or a practice the owner values. |
+| Rebuild | Offers an eligible broad reset, uses permitted native feedback and chooses replacement sources. Shows what changed, what was verified and which native tap is pending. |
+| Maintain | Revisits each available account daily, catches returning distractions and makes better clicks easy through selected sources, subscriptions or a private list. |
+| Measure | Compares the same feed before and after, reports evidenced user-open behavior separately and preserves the owner's corrections. A missing account keeps the overall result pending. |
 
-In the demo, transfer rumors keep turning up on YouTube. The agent asks what those evenings crowd out. The viewer misses spending time with his daughter but hasn't chosen an activity. “Would you rather talk together or make something together?” leads to a specific answer: “She wants to cook with me. Let's make breakfast on Saturday.”
+A fictional example: yesterday's history contains sports rumors and a workshop operator debugging defective parts. The agent cuts the recurring rumors, looks for more first-hand production engineering and gives the owner a specific case to open next. A play recorded by autoplay carries no evidence of a chosen click.
 
-That answer changes the curation. The agent reduces the rumor videos, preserves the friend's channel and searches outside the existing feed for a recipe the two can make together. The offline demo includes a real pancake recipe with simple measuring and mixing tasks. The next conversation can start with “Did you make breakfast together?” [Recipe used in the demo](https://www.jamieoliver.com/recipes/healthy-breakfast-ideas/buddys-one-cup-pancakes/) · [Interview and evidence guide](skills/feedreset/references/interview.md)
-
-Run the same example locally. Python 3.9+ is the only dependency.
+Try the four-account offline demo with Python 3.9+:
 
 ```sh
 git clone https://github.com/notreg-stack/feedreset-agent.git
@@ -30,7 +34,7 @@ python3 demo.py
 
 The agent opens each available account, samples the same surface, applies standing choices, and returns a short receipt: how much unwanted material it actually saw, which changes it verified, what still needs a tap, and one useful thing to open. It can remove a specific unwanted YouTube watch-history signal with permission. Instagram and TikTok have broader reset controls for an explicitly chosen fresh start. Repeated full resets would also discard useful learning.
 
-**Daily on a Mac or Linux computer:** complete one interactive diagnosis and save your choices. Use a scheduler on a host that has access to the account. For example, open `crontab -e` and add one line with the real absolute paths on that machine. The example runs at 08:00 host time. Use your Python 3.9+ executable and a writable private directory for the log.
+**Daily on a Mac or Linux computer:** run the initial audits and apply the intentional curation profile. Use a scheduler on a host that has access to the account. For example, open `crontab -e` and add one line with the real absolute paths on that machine. The example runs at 08:00 host time. Use your Python 3.9+ executable and a writable private directory for the log.
 
 ```cron
 0 8 * * * /absolute/path/to/python3 /absolute/path/to/feedreset-agent/skills/feedreset/scripts/daily.py codex --binary /absolute/path/to/codex >> "$HOME/.feedreset/daily.log" 2>&1

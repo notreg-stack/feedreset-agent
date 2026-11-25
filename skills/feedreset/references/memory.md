@@ -1,5 +1,7 @@
 # Local audit, choices and receipts
 
+Start the default workflow with `audit`, then `curate SAMPLE` per available account. The manual questionnaire below is optional. See [intentional curation and the 95% measure](intentional.md).
+
 Run from the skill directory. Python 3.9+ and its standard library suffice. Each invocation uses the same private database at `~/.feedreset/state.sqlite3`. Pass `--db PATH` before the subcommand for a different store. A consistent network/account pair is essential. Full data exports and screenshots belong outside the checkout.
 
 1. Convert what you actually observed into the sample shape below. Supply a stable native post ID or permalink. For a screenshot without one, use the same stable fingerprint of creator + title across samples. A vague title belongs in uncertain. Use a verified stable creator handle/ID when available; omit it otherwise. Split surfaces into separate samples. For consecutive sessions, label the sample with its surface, e.g. `home-2026-06-05-a` or `reels-2026-06-05-a`. Compare only matching feeds. Use the observed local date. Re-importing an identical sample is safe.

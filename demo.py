@@ -1,52 +1,55 @@
 #!/usr/bin/env python3
-"""Offline tour. All evidence is fictional and the database is temporary."""
+"""Fictional four-network reconstruction. Runs offline in a temporary database."""
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parent
+SCRIPTS = Path(__file__).resolve().parent/"skills/feedreset/scripts"
+NETWORKS = {"instagram":"Reels", "youtube":"Home", "tiktok":"For You", "x":"For you"}
+
+
+def item(i, useful, phase):
+    if useful:
+        return {"id": f"{phase}-detail-{i}", "label": f"Workshop case {i}: finding the cause of a defect",
+                "focus":"production engineering", "topics":["technical-demonstrations"], "suggest":"encourage",
+                "merit":"technical-depth", "reason":"Shows a diagnosed defect, the intervention and a measured result.",
+                "creator":f"demo-workshop-{i % 3}"}
+    tag = ("memes", "all-football", "viral-entertainment", "general-humor", "all-politics")[i % 5]
+    return {"id":f"{phase}-teaser-{i}", "label":f"Demo {tag} clip {i}", "focus":tag, "topics":[tag],
+            "suggest":"reduce","merit":"low-value","reason":"Recycles a teaser with no new information or practical use."}
 
 
 def main():
     with tempfile.TemporaryDirectory() as tmp:
-        def run(*args):
-            cmd = [sys.executable, str(ROOT/"skills/feedreset/scripts/feedreset.py"),
-                   "--db", str(Path(tmp)/"demo.db"), "--network", "youtube", "--account", "demo", *args]
-            return json.loads(subprocess.check_output(cmd, text=True))
+        db = str(Path(tmp)/"demo.db")
+        print("Fictional four-network audit. No accounts, online search or platform actions.")
+        for net, feed in NETWORKS.items():
+            def run(*args, data=None):
+                cmd = [sys.executable, str(SCRIPTS/"feedreset.py"), "--db", db, "--network",net,"--account","personal",*args]
+                return json.loads(subprocess.check_output(cmd, input=json.dumps(data), text=True))
 
-        audit = run("audit", str(ROOT/"examples/sample.json"))
-        print("FeedReset • fictional YouTube Home • offline demo")
-        for item in audit["examples"]:
-            print(f"  {item['suggest']:10}  {item['label']} — {item['reason']}")
-        menu = run("ask", audit["sample"], "--lang", "en")
-        print("\nSeen in this feed:")
-        for option in menu["observed"]:
-            print(f"  {option['code']}  {option['label']} ({option['observed_count']}/{menu['sample_size']})")
-        print("Other optional patterns on YouTube:")
-        for option in menu["optional_reduce"][:3]:
-            print(f"  {option['code']}  {option['label']}")
-        print(menu["question"])
-        print("Viewer: I miss doing things with my daughter.")
-        print("Agent: Do you miss talking together, or making something together?")
-        print("Viewer: Cooking together. She wants to make Saturday breakfast with me.")
-        goal = "cooking with my daughter"
-        run("answer", audit["sample"], "--replace", "transfer rumors", goal, "make Saturday breakfast together",
-            "--encourage", "worked examples", "--protect", "my-friend", "--boost-sources", "--repair-youtube-history")
-        result = run("plan", audit["sample"])
-        print(f"Goal in the original feed: {len(result['replacements'][0]['goal_items_in_sample'])} items.")
-        resource = run("save-resource", "transfer rumors", goal,
-                       "https://www.jamieoliver.com/recipes/healthy-breakfast-ideas/buddys-one-cup-pancakes/",
-                       "Buddy's one-cup pancakes", "Measure the ingredients and mix the batter together.")
-        print("Separately sourced example included in this demo:", resource["title"], "—", resource["reason"])
-        print(resource["url"])
-        print("Current feed:", result["counts"])
-        for action in result["pending"]:
-            print("  Proposed:", action["control"], "→", action["label"])
-        for item in result["reading_queue"]:
-            print("  Keep:", item["label"])
-        print("No real accounts accessed. No account changes made.")
+            def audit(name, day, surface, items):
+                run("audit","-",data={"sample":name,"surface":surface,"device":"iphone","feed":feed,
+                                      "items":items,"day":day})
+            history = [dict(item(0,False,"h"),entry="user-opened"), dict(item(1,True,"h"),entry="user-opened"),
+                       dict(item(2,False,"h"),entry="autoplay")]
+            audit("prior-views","2026-01-01","history",history)
+            audit("baseline","2026-01-01","recommendations",[item(i,False,"b") for i in range(20)])
+            review = run("curate","baseline")
+            audit("later","2026-01-02","recommendations",[item(i,i < 19,"n") for i in range(20)])
+            audit("later-views","2026-01-02","history",[dict(item(i,True,"h2"),entry="user-opened") for i in range(2)])
+            run("curate","later")
+            print(f"{net}: proposed {len(review['plan']['pending'])} item controls; "
+                  f"history seed: {review['history_directions'][0]['focus']}.")
+        cmd = [sys.executable,str(SCRIPTS/"progress.py"),"--db",db,"--day","2026-01-02"]
+        result = json.loads(subprocess.check_output(cmd,text=True))
+        print(f"Simulated later samples: {result['reoriented_pct_for_requested_scopes']}% reoriented.")
+        click = result["accounts"][0]
+        print(f"Instagram demo: substantive user opens {click['opened_baseline']['aligned']}/{click['opened_baseline']['user_opened']}"
+              f" → {click['opened_on_day']['aligned']}/{click['opened_on_day']['user_opened']}.")
+        print("Prepared example data illustrates the metric. Real progress requires fresh account observations.")
 
 
 if __name__ == "__main__":

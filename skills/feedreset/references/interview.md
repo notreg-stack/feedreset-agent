@@ -1,6 +1,6 @@
-# Build a question people can answer in one message
+# Optional questions when a decision needs the owner
 
-Start from what the person saw. Use the catalog to help them recognize patterns they may want to cut. A catalog entry describes a possible preference. Its presence in the catalog establishes neither exposure nor a harmful effect on an individual.
+First run the intentional curation pass on all available accounts. Use this guide for a correction, a consequential ambiguity or a person who wants a guided interview. For routine decisions, act on the history and the editorial policy. Start from what the person saw. Use the catalog to help them recognize patterns they may want to cut. A catalog entry describes a possible preference. Its presence in the catalog establishes neither exposure nor a harmful effect on an individual.
 
 ## Capture on the device they actually use
 

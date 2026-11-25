@@ -80,6 +80,7 @@ def apply_answers(previous, questionnaire, reduce, encourage, keep, protect, rep
     fields = {"reduce": list(reduce), "encourage": list(encourage), "keep_topics": keep}
     for trap, goal, practice in replacements:
         trap, goal = resolve(trap), resolve(goal)
+        pairs = {k: r for k, r in pairs.items() if k[0] != trap or r.get("origin", "owner") == "owner"}
         fields["reduce"].append(trap)
         fields["encourage"].append(goal)
         pairs[trap,goal] = {"reduce": trap, "cultivate": goal, "practice": practice}

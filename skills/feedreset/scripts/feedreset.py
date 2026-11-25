@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 from questionnaire import apply_answers, canonical, menu
+from intentional import MERITS, derive
 
 NETWORKS = ("instagram", "youtube", "tiktok", "x")
 KINDS = ("encourage", "reduce", "uncertain")
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS actions (
 CREATE TABLE IF NOT EXISTS resources (
   scope TEXT, trap TEXT, goal TEXT, practice TEXT, url TEXT, title TEXT, reason TEXT,
   PRIMARY KEY(scope,trap,goal,practice,url));
+CREATE TABLE IF NOT EXISTS baselines (scope TEXT PRIMARY KEY, sample TEXT);
 """
 
 def require(condition, message):
@@ -81,6 +83,15 @@ def normalize_item(value):
     item = {k: string(value.get(k), k) for k in ("id", "label", "reason", "suggest")}
     require(item["suggest"] in KINDS, "Invalid suggest value")
     item["topics"] = tags(value.get("topics"), "topics")
+    if "focus" in value:
+        item["focus"] = canonical(string(value["focus"], "focus"))
+        item["topics"] = sorted(set(item["topics"]) | {item["focus"]})
+    if "merit" in value:
+        require(value["merit"] in (*MERITS, "low-value", "unknown"), "Unknown editorial merit")
+        item["merit"] = value["merit"]
+    if "entry" in value:
+        require(value["entry"] in ("user-opened","autoplay","unknown"), "Unknown history entry provenance")
+        item["entry"] = value["entry"]
     item["creator"] = string(value["creator"], "creator") if value.get("creator") else ""
     url = value.get("url", "")
     require(isinstance(url, str), "url must be text")
@@ -120,6 +131,10 @@ def put_policy(db, scope, raw):
         require(trap in policy["reduce"] and goal in policy["encourage"], "Replacement conflicts with topic choices")
         require((trap, goal) not in pairs, "Duplicate replacement")
         pairs[trap, goal] = {"reduce": trap, "cultivate": goal, "practice": string(pair.get("practice"), "practice")}
+        origin = pair.get("origin", "owner")
+        require(origin in ("owner", "history", "editorial"), "Unknown replacement origin")
+        if origin != "owner":
+            pairs[trap, goal]["origin"] = origin
     policy["replacements"] = list(pairs.values())
     db.execute("INSERT OR REPLACE INTO policies VALUES (?,?)", (scope, json.dumps(policy)))
     return policy
@@ -172,6 +187,10 @@ def decision(item, policy):
         return "protect"
     positive = topics.intersection(canonical(t) for t in policy["encourage"])
     negative = topics.intersection(canonical(t) for t in policy["reduce"])
+    if item.get("merit") == "low-value" and item["suggest"] == "reduce":
+        return "reduce" if negative else "uncertain"
+    if item.get("merit") == "unknown" and positive:
+        return "uncertain"
     if positive and not negative:
         return "encourage"
     if negative and not positive:
@@ -248,16 +267,21 @@ def plan(db, scope, sample, reset=False):
         require(row["surface"] == "recommendations", "A reset requires a recommendations baseline")
         # Stable across samples. A used reset stays consumed until a new explicit reset request.
         actions.append(("reset_suggestions", reset, "Account-wide recommendation reset"))
-    pending = []
+    pending, resurfaced = [], []
     for control, target, label in actions:
         aid = action_id(control, target)
-        existing = db.execute("SELECT outcome FROM actions WHERE scope=? AND id=?", (scope, aid)).fetchone()
+        existing = db.execute("SELECT outcome,last_sample FROM actions WHERE scope=? AND id=?", (scope, aid)).fetchone()
         if existing and existing["outcome"] in ("verified", "user_reported"):
+            if control == "less_like_this" and existing["last_sample"] != sample:
+                prior, _ = sample_data(db, scope, existing["last_sample"])
+                if prior["day"] < row["day"]:
+                    resurfaced.append({"target": target, "label": label, "prior_outcome": existing["outcome"]})
             continue
         pending.append({"id": aid, "control": control, "target": target, "label": label,
                         "previous_outcome": existing["outcome"] if existing else None})
     return {"scope": scope, "sample": sample, "surface": row["surface"], "counts": counts,
-            "reading_queue": reading, "pending": pending, "replacements": replacement_plan(db, scope, policy, items)}
+            "reading_queue": reading, "pending": pending, "resurfaced": resurfaced,
+            "replacements": replacement_plan(db, scope, policy, items)}
 
 
 def record(db, scope, args):
@@ -299,6 +323,8 @@ def main():
     parser.add_argument("--network", required=True, choices=NETWORKS)
     parser.add_argument("--account", required=True, help="Stable account alias on this network")
     commands = parser.add_subparsers(dest="command", required=True)
+    sub = commands.add_parser("curate", help="Apply the intentional curation profile and learn from audited history")
+    sub.add_argument("sample", nargs="?", help="Current organic recommendation sample; first one anchors progress")
     for name in ("audit", "policy"):
         commands.add_parser(name).add_argument("file", help="JSON path, or - for stdin")
     for name in ("ask", "answer"):
@@ -337,6 +363,20 @@ def main():
                 result = ingest(db, scope, read_json(args.file))
             elif args.command == "policy":
                 result = put_policy(db, scope, read_json(args.file))
+            elif args.command == "curate":
+                day, items = date.today().isoformat(), []
+                if args.sample:
+                    row, items = sample_data(db, scope, args.sample)
+                    require(row["surface"] == "recommendations", "Use an organic recommendation sample as baseline")
+                    context = sample_context(db, scope, row)
+                    require(context["device"] != "unknown" and context["feed"] != "recommendations",
+                            "Name the actual device and feed before anchoring the baseline")
+                    day = row["day"]
+                    db.execute("INSERT OR IGNORE INTO baselines VALUES (?,?)", (scope, args.sample))
+                policy, evidence = derive(db, scope, get_policy(db, scope), items, day)
+                result = {"policy": put_policy(db, scope, policy), **evidence}
+                if args.sample:
+                    result["plan"] = plan(db, scope, args.sample)
             elif args.command in ("ask", "answer"):
                 row, items = sample_data(db, scope, args.sample) if args.sample else (None, [])
                 if args.command == "ask":
