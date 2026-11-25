@@ -1,16 +1,24 @@
 # FeedReset
 
-Entregue à sua IA uma tarefa diária: manter o feed alinhado com o que você escolheu ver. O agente começa por um diagnóstico do seu Instagram, YouTube, TikTok ou X. Você vê exemplos reais, corrige o julgamento da IA e decide o que incentivar, cortar ou proteger.
+**Tire do feed o que prende você contra a sua vontade. Abra espaço para o que você quer cultivar na vida.** Sua IA examina o Instagram, o YouTube, o TikTok ou o X, faz perguntas para descobrir o que entraria no lugar e procura conteúdo que ajude você a pôr essa escolha em prática.
 
 ## Comece com esta mensagem
 
-> Abra https://github.com/notreg-stack/feedreset-agent e siga skills/feedreset/SKILL.md. Comece pela rede que mais uso. Examine recomendações consecutivas, mostre o que parece construtivo, dispersivo ou incerto e explique com exemplos. Depois me pergunte o que quero incentivar, reduzir ao máximo e sempre preservar. Aplique minhas escolhas e configure a manutenção diária se você puder executá-la.
+> Abra https://github.com/notreg-stack/feedreset-agent e siga skills/feedreset/SKILL.md. Identifique o que me prende e eu gostaria de cortar. Me ajude, com perguntas, a descobrir o que vale cultivar no lugar, mesmo que hoje isso nem apareça nas minhas redes. Procure fontes concretas para a minha resposta, aplique minhas escolhas onde tiver acesso e cuide delas diariamente.
 
 No Codex ou Claude Code, abra a pasta do projeto. Em um chat como Grok ou Claude, você pode anexar o arquivo da skill e a pasta `references`. Se o chat não enxerga seu iPhone, bastam algumas capturas consecutivas da página inicial para começar. Você pode ocultar nomes, mensagens e notificações.
 
-## A pergunta já vem com opções
+## Como a conversa muda o resultado
 
-**“No seu feed apareceram rumores de contratação em quatro de vinte posts e duas aulas práticas. Também quer reduzir brigas políticas, apostas ou vídeos de compras por impulso? O que devo incentivar e quem devo preservar?”** Os números aqui são fictícios. Na sua sessão, o agente usa o que realmente apareceu nas capturas do iPhone ou na aba do navegador. Você pode responder “corte rumores e apostas, mantenha o time do meu filho e acrescente cursos que prometem dinheiro rápido”. [Lógica das sugestões e fontes](skills/feedreset/references/interview.md)
+> **Agente:** “Vi rumores de contratação voltando ao seu feed. Quando você continua vendo esses vídeos, o que acaba deixando para depois?”
+>
+> **Pessoa:** “Queria fazer mais coisas com minha filha. Só não sei o quê.”
+>
+> **Agente:** “Você sente mais falta de conversar com calma ou de fazer algo juntos?”
+>
+> **Pessoa:** “De fazer algo juntos. Ela sempre pede para cozinhar comigo. Podíamos fazer o café de sábado.”
+
+Nesse exemplo, o agente passa a cortar os rumores e procura uma receita que os dois consigam preparar juntos. Encontra uma em que a filha pode medir os ingredientes e misturar a massa. Na revisão seguinte, a pergunta é “Vocês conseguiram fazer o café juntos?”. [Receita usada na demonstração](https://www.jamieoliver.com/recipes/healthy-breakfast-ideas/buddys-one-cup-pancakes/) · [Guia da entrevista](skills/feedreset/references/interview.md)
 
 ## O que acontece depois
 

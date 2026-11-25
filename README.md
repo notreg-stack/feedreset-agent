@@ -1,6 +1,6 @@
 # FeedReset
 
-**Give your AI a job: reclaim your feed.** FeedReset is an open agent skill for Instagram, YouTube, TikTok and X. Your assistant examines the recommendations you actually receive, shows what appears useful or distracting, asks what *you* want more or less of, and uses those choices for daily maintenance. A stray click doesn't get a vote.
+**Cut the content you keep getting pulled back into. Make room for what you want to cultivate in your life.** FeedReset gives your AI an interview and tools to do both. It inspects your Instagram, YouTube, TikTok or X feed, asks what unwanted habits crowd out, and finds sources that help you act on your answer. A goal can be missing from every post in your feed.
 
 [Guia em português](README.pt-BR.md) · [Download the skill](https://github.com/notreg-stack/feedreset-agent/releases/latest) · [What each network allows](skills/feedreset/references/platforms.md)
 
@@ -8,24 +8,15 @@
 
 Give an agent with repository access this prompt:
 
-> Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Start with my most-used feed. Show me concrete examples of what appears constructive, distracting or uncertain. Ask what I want to encourage, reduce and always keep. Then apply my choices as strongly as my account controls allow and set up a daily pass if your host can schedule it.
+> Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Find what keeps pulling me back against my intentions. Ask me questions to discover what I want to cultivate instead, even if it never appears in my feed. Find content I can act on, apply my choices where my account permits and maintain them daily.
 
 **Claude Code and Codex:** open a checkout and send the prompt. **Claude, Grok or another chat:** share the skill and its references folder, plus a few consecutive screenshots if the chat can't see the feed. On an iPhone, screenshots are enough for a first diagnosis. Account changes require a supported integration or native taps. A chat without a scheduler can give you a reusable policy card.
 
-## A question grounded in your feed
+## From an unwanted habit to something worth doing
 
-First come patterns actually seen on your iPhone or desktop browser, with examples and counts. Then come optional prompts for that network: cliffhanger clips, outrage bait, transfer rumors, betting promotions, impulse-shopping videos or productivity tips that never demonstrate the technique. Choose what to cut, what to increase, what to always keep, and add anything in your own words. [How the interview works and what the research supports](skills/feedreset/references/interview.md)
+In the demo, transfer rumors keep turning up on YouTube. The agent asks what those evenings crowd out. The viewer misses spending time with his daughter but hasn't chosen an activity. “Would you rather talk together or make something together?” leads to a specific answer: “She wants to cook with me. Let's make breakfast on Saturday.”
 
-## What a diagnosis looks like
-
-This example is fictional. The assistant first sees five YouTube recommendations. The owner then says “more worked examples, cut transfer gossip, always keep my friend.”
-
-| Evidence on screen | Decision after the owner's choices |
-| --- | --- |
-| A mechanic shows the whole repair, including the failed attempt | Keep both videos. Offer to prioritize the channel. |
-| A third post repeats an anonymous transfer rumor | Apply the available negative-feedback control. |
-| A friend posts about a new teammate | Keep the friend, even though the topic matches a reduction. |
-| A teaser has too little visible evidence | Leave it undecided. |
+That answer changes the curation. The agent reduces the rumor videos, preserves the friend's channel and searches outside the existing feed for a recipe the two can make together. The offline demo includes a real pancake recipe with simple measuring and mixing tasks. The next conversation can start with “Did you make breakfast together?” [Recipe used in the demo](https://www.jamieoliver.com/recipes/healthy-breakfast-ideas/buddys-one-cup-pancakes/) · [Interview and evidence guide](skills/feedreset/references/interview.md)
 
 Run the same example locally. Python 3.9+ is the only dependency.
 

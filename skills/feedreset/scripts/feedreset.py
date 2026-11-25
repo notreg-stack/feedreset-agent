@@ -14,7 +14,7 @@ from questionnaire import apply_answers, canonical, menu
 
 NETWORKS = ("instagram", "youtube", "tiktok", "x")
 KINDS = ("encourage", "reduce", "uncertain")
-SURFACES = ("recommendations", "following", "history")
+SURFACES = ("recommendations", "following", "history", "discovery")
 OUTCOMES = ("verified", "user_reported", "needs_device", "unavailable")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS samples (
@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS contexts (
 CREATE TABLE IF NOT EXISTS actions (
   scope TEXT, id TEXT, control TEXT, target TEXT, evidence TEXT, outcome TEXT,
   last_sample TEXT, PRIMARY KEY(scope,id));
+CREATE TABLE IF NOT EXISTS resources (
+  scope TEXT, trap TEXT, goal TEXT, practice TEXT, url TEXT, title TEXT, reason TEXT,
+  PRIMARY KEY(scope,trap,goal,practice,url));
 """
 
 def require(condition, message):
@@ -65,6 +68,14 @@ def database(path):
     return db
 
 
+def public_link(value):
+    url = string(value, "url")
+    u = urlsplit(url)
+    require(u.scheme == "https" and u.hostname and not u.username and not u.password,
+            "Use a public HTTPS link without credentials")
+    return url
+
+
 def normalize_item(value):
     require(isinstance(value, dict), "Each item must be an object")
     item = {k: string(value.get(k), k) for k in ("id", "label", "reason", "suggest")}
@@ -73,11 +84,7 @@ def normalize_item(value):
     item["creator"] = string(value["creator"], "creator") if value.get("creator") else ""
     url = value.get("url", "")
     require(isinstance(url, str), "url must be text")
-    if url:
-        u = urlsplit(url)
-        require(u.scheme == "https" and u.hostname and not u.username and not u.password,
-                "Use a public HTTPS link without credentials")
-    item["url"] = url
+    item["url"] = public_link(url) if url else ""
     return item
 
 
@@ -88,7 +95,7 @@ def get_policy(db, scope):
 
 def put_policy(db, scope, raw):
     require(isinstance(raw, dict), "Expected a policy object")
-    keys = {"encourage", "reduce", "protect", "keep_topics", "repair_youtube_history", "boost_sources"}
+    keys = {"encourage", "reduce", "protect", "keep_topics", "repair_youtube_history", "boost_sources", "replacements"}
     require(set(raw) <= keys, "Unknown policy field")
     policy = {k: sorted({canonical(t) for t in tags(raw.get(k, []), k)})
               for k in ("encourage", "reduce", "keep_topics")}
@@ -103,6 +110,17 @@ def put_policy(db, scope, raw):
     boost = raw.get("boost_sources", False)
     require(isinstance(boost, bool), "boost_sources must be true or false")
     policy["boost_sources"] = boost
+    pairs = {}
+    replacements = raw.get("replacements", [])
+    require(isinstance(replacements, list), "replacements must be a list")
+    for pair in replacements:
+        require(isinstance(pair, dict), "Expected a replacement object")
+        trap = canonical(string(pair.get("reduce"), "reduce"))
+        goal = canonical(string(pair.get("cultivate"), "cultivate"))
+        require(trap in policy["reduce"] and goal in policy["encourage"], "Replacement conflicts with topic choices")
+        require((trap, goal) not in pairs, "Duplicate replacement")
+        pairs[trap, goal] = {"reduce": trap, "cultivate": goal, "practice": string(pair.get("practice"), "practice")}
+    policy["replacements"] = list(pairs.values())
     db.execute("INSERT OR REPLACE INTO policies VALUES (?,?)", (scope, json.dumps(policy)))
     return policy
 
@@ -165,6 +183,37 @@ def action_id(control, target):
     return hashlib.sha256(json.dumps([control, target]).encode()).hexdigest()[:24]
 
 
+def save_resource(db, scope, args):
+    policy = get_policy(db, scope) or {}
+    trap, goal = canonical(args.trap), canonical(args.goal)
+    pair = next((r for r in policy.get("replacements", [])
+                 if r["reduce"] == trap and r["cultivate"] == goal), None)
+    require(pair is not None, "Choose this replacement in the interview first")
+    url, title, reason = public_link(args.url), string(args.title, "title"), string(args.reason, "reason")
+    db.execute("INSERT OR REPLACE INTO resources VALUES (?,?,?,?,?,?,?)",
+               (scope, trap, goal, pair["practice"], url, title, reason))
+    return {"cultivate": goal, "practice": pair["practice"], "url": url, "title": title, "reason": reason}
+
+
+def replacement_plan(db, scope, policy, items):
+    out = []
+    for pair in policy.get("replacements", []):
+        trap, goal = pair["reduce"], pair["cultivate"]
+        traps, useful = [], []
+        for item in items:
+            topics = {canonical(t) for t in item["topics"]}
+            choice = decision(item, policy)
+            if trap in topics and choice == "reduce":
+                traps.append(item["id"])
+            if goal in topics and choice == "encourage":
+                useful.append(item["id"])
+        rows = db.execute("SELECT url,title,reason FROM resources WHERE scope=? AND trap=? AND goal=? AND practice=? ORDER BY rowid DESC",
+                          (scope, trap, goal, pair["practice"]))
+        out.append({**pair, "unwanted_items_in_sample": traps, "goal_items_in_sample": useful,
+                    "resources_found_separately": [dict(r) for r in rows]})
+    return out
+
+
 def plan(db, scope, sample, reset=False):
     row, items = sample_data(db, scope, sample)
     policy = get_policy(db, scope)
@@ -208,7 +257,7 @@ def plan(db, scope, sample, reset=False):
         pending.append({"id": aid, "control": control, "target": target, "label": label,
                         "previous_outcome": existing["outcome"] if existing else None})
     return {"scope": scope, "sample": sample, "surface": row["surface"], "counts": counts,
-            "reading_queue": reading, "pending": pending}
+            "reading_queue": reading, "pending": pending, "replacements": replacement_plan(db, scope, policy, items)}
 
 
 def record(db, scope, args):
@@ -259,6 +308,8 @@ def main():
             sub.add_argument("--lang", choices=("pt","en"), default="pt")
             sub.add_argument("--all", action="store_true", help="Show every optional topic")
         else:
+            sub.add_argument("--replace", action="append", nargs=3, default=[], metavar=("TRAP","GOAL","PRACTICE"),
+                             help="Link an unwanted pattern to a chosen goal and a concrete off-screen action")
             for field in ("reduce", "encourage", "keep", "protect"):
                 sub.add_argument("--"+field, action="extend", nargs="+", default=[])
             for field in ("boost-sources", "repair-youtube-history"):
@@ -271,6 +322,9 @@ def main():
             sub.add_argument("action")
             sub.add_argument("outcome", choices=OUTCOMES)
             sub.add_argument("evidence")
+    sub = commands.add_parser("save-resource", help="Save a source inspected for a confirmed replacement")
+    for field in ("trap", "goal", "url", "title", "reason"):
+        sub.add_argument(field)
     commands.add_parser("report")
     args = parser.parse_args()
     scope = args.network + "/" + norm(string(args.account, "account"))
@@ -292,13 +346,15 @@ def main():
                         result.update(sample_context(db, scope, row))
                 else:
                     choices = apply_answers(get_policy(db, scope), menu(args.network, items, expanded=True),
-                                            args.reduce, args.encourage, args.keep, args.protect)
+                                            args.reduce, args.encourage, args.keep, args.protect, args.replace)
                     for flag in ("boost_sources", "repair_youtube_history"):
                         if getattr(args, flag) is not None:
                             choices[flag] = getattr(args, flag)
                     result = put_policy(db, scope, choices)
             elif args.command == "plan":
                 result = plan(db, scope, args.sample, args.reset_request)
+            elif args.command == "save-resource":
+                result = save_resource(db, scope, args)
             elif args.command == "record":
                 result = record(db, scope, args)
             else:

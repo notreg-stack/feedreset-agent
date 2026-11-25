@@ -26,7 +26,7 @@ Sample shape with a fictional item:
 {"sample":"home-2026-06-05-a","day":"2026-06-05","surface":"recommendations","device":"iphone","feed":"Home","items":[{"id":"fictional-001","label":"Why the transfer deal is always one day away","creator":"demo-rumors","topics":["transfer rumors"],"reason":"Teases an unnamed signing and supplies no source.","suggest":"reduce"}]}
 ```
 
-Allowed surfaces are `recommendations`, `following` and `history`. Allowed diagnostic suggestions are `encourage`, `reduce` and `uncertain`. Use `device` (`iphone`, `desktop`, `other` or `unknown`) and `feed` (e.g. Home, Reels, For You) to preserve the capture context. The optional `url` is a public HTTPS permalink. Keep raw captions and viewer identifiers out of the ledger when a short label and reason suffice.
+Allowed surfaces are `recommendations`, `following`, `history` and `discovery`. Allowed diagnostic suggestions are `encourage`, `reduce` and `uncertain`. Use `device` (`iphone`, `desktop`, `other` or `unknown`) and `feed` (e.g. Home, Reels, For You) to preserve the capture context. The optional `url` is a public HTTPS permalink. Keep raw captions and viewer identifiers out of the ledger when a short label and reason suffice.
 
 ```json
 {"encourage":["worked examples","match analysis"],"reduce":["transfer rumors"],"protect":["my-friend"],"boost_sources":true,"repair_youtube_history":true}
@@ -39,3 +39,16 @@ For a separately confirmed Instagram/TikTok reset, attach the same one-shot ID t
 For a YouTube Takeout export, select YouTube watch history in JSON and unzip it privately. Extract local evidence with `python3 scripts/takeout.py /path/to/watch-history.json --limit 20`. The helper selects the latest distinct videos and retains their timestamps. Classify the resulting rows before audit and separate observation dates. If the owner supplies HTML, screenshots or a different export shape, describe the evidence you can read directly.
 
 Use `ask --all` (or `ask SAMPLE --all`) to expand the optional catalog. Omitting the sample produces general suggestions only. The `answer` command merges selected topics into the existing policy. A topic selected with `--keep` is always preserved, including on an otherwise mixed post. Protected creators use `--protect`. When collecting input without a CLI, use [the interview guide](interview.md).
+
+## Keep each reduction tied to the practice the owner chose
+
+After the interview, record the replacement in the person's words. Both topics can be custom, and the positive topic can be absent from every observed feed.
+
+```sh
+python3 scripts/feedreset.py --network youtube --account personal answer home-2026-06-05-a --replace "transfer rumors" "cooking with my daughter" "prepare dinner together on Saturday"
+python3 scripts/feedreset.py --network youtube --account personal plan home-2026-06-05-a
+```
+
+The plan lists matched unwanted item IDs, matched goal item IDs and separately discovered resources. When the goal is missing, use the host's search to open an actual item and check that it supports the practice. Save it with `save-resource TRAP GOAL URL TITLE REASON` on the same account. Use inspected resource URLs only. The helper stores the host's finding; it does not fetch or independently verify the URL. The person can change the practice by repeating the pair with a new practice. Prior resources for the old practice drop out of the current plan.
+
+For a source on the target social network, inspect distinct items from the actual creator and audit the inspected items as a separate sample with `surface: discovery`. Use the agreed goal as a topic only on supporting items. The existing two-item source rule and standing authorization can then propose a native priority action. Record its receipt against that discovery sample. Keep discovery out of estimates of what was recommended to the person. For an offline-only replacement, record the reduction and the chosen offline practice on the person's private policy card; do not enroll a media replacement.

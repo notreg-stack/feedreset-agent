@@ -14,16 +14,18 @@ Start from what the person saw. Use the catalog to help them recognize patterns 
 2. Run `ask SAMPLE --lang pt` or `--lang en`. In hosts without Python, apply the same approach using [the catalog](topics.json). Count each post once for each topic it supports. Overlapping topics mean counts can exceed the sample total. Use at most a handful of first-turn choices and let the person expand the menu.
 3. Show **seen in your feed** first: offer the strongest recurring personalized options, one recognizable example per pattern, and a constructive alternative grounded in an observed post when possible. For singletons say “seen once.” If many items concern a pattern absent from the catalog, that pattern still goes first.
 4. Then show **other options for this network**: three to five prompts the person can choose preventively. Label them as unobserved in this sample. If a topic is already observed, show it only in the observed section. Offer the broader catalog, a whole-subject cut, or extra topics in their own words. Suggestions about sports, politics, leisure or identity are never automatic exclusions.
-5. End with **reduce strongly / encourage / always keep / add my own**. Let them respond by code, by copying labels or in a sentence. Show the sample name with the choices and resolve codes against that same sample before saving. If several networks are involved, present one consolidated conversation, keep codes grouped by network and ask only if the requested scope is ambiguous.
+5. Use the questions below to discover what to put in place of the unwanted pattern. Keep **reduce / cultivate / always keep / add my own** available as simple answer options. Let them respond by code, by copying labels or in a sentence. Show the sample name with the choices and resolve codes against that same sample before saving. If several networks are involved, present one consolidated conversation, keep codes grouped by network and ask only if the requested scope is ambiguous.
 6. Record only what the person selected, plus existing choices they have retained. A new answer can move a topic between reduce, encourage and always keep. Record named people or channels separately. If they want to cut short-form clips but preserve a friend's work, acknowledge and save the exception. With no evidence, show general options and state that observation is pending.
 
-### Example using invented posts
+### Discover what deserves the space
 
-> **No seu YouTube do computador** apareceram duas aulas de conserto com demonstração e dois vídeos sobre contratações entre cinco recomendações. Um dos vídeos de futebol é de um amigo.
->
-> **Também pode querer reduzir** sequências de Shorts com suspense, manchetes alarmistas ou dicas de IA sem demonstração. Esses padrões não apareceram nesta amostra.
->
-> O que devo cortar, incentivar e sempre preservar? Pode responder “corte rumores e Shorts, aumente aulas práticas e preserve o canal do meu amigo”. Também pode acrescentar um assunto, por exemplo “corte reviews de equipamento que só tentam vender”.
+Begin with one real pattern and listen for what it displaces. Someone may keep watching online arguments even after deciding to stop. Ask “What tends to get squeezed out on those evenings?” If they already know what to put in its place, use their words and skip the extra questions.
+
+When the answer is “something useful” or “I don't know,” ask what they miss doing, whom they admire and why, or what they want to be able to do a month from now. Pick the question that follows naturally from their answer. Offer two hypotheses grounded in what they tell you. Possible directions include presence with family, patience, courage, generosity, faith or reflection, physical training, intellectual depth and mastery of a craft. Leave room for an unlisted answer. Never infer a belief, virtue or personal shortcoming from a social feed.
+
+For example, a person who says “I want to be there for my daughter” might mean building something together or listening more patiently. Ask which would change the coming week. If they choose cooking together, search for a beginner recipe with a task they can do side by side. If they choose listening, seek a demonstrated conversation exercise. Those answers lead to materially different sources even when the rejected feed pattern is identical.
+
+Offer a short summary for correction, then apply it: **what to cut → what to cultivate → how it would show up outside the app**. If a person wants to use the freed time entirely offline, honor that answer. Keep their feed reductions and skip replacement media for that time.
 
 ## Why these prompts are offered
 

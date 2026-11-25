@@ -159,6 +159,49 @@ class FeedResetTests(unittest.TestCase):
         self.assertTrue(policy["boost_sources"])
         self.assertEqual(json.loads(self.cli("plan", sample).stdout)["counts"]["protect"], 2)
 
+    def test_replacement_missing_from_feed_and_corrections(self):
+        self.enroll()
+        self.db.commit()
+        sample = self.sample["sample"]
+        goal = "cooking with my daughter"
+        answer = ["answer", sample, "--replace", "transfer rumors", goal]
+        self.assertEqual(self.cli(*answer, "make breakfast together").returncode, 0)
+        initial = json.loads(self.cli("plan", sample).stdout)["replacements"][0]
+        self.assertEqual(initial["goal_items_in_sample"], [])
+        self.assertEqual(initial["unwanted_items_in_sample"], ["demo-b"])
+        link = ["save-resource", "transfer rumors", goal, "https://example.org/recipe", "Fictional recipe", "Mix together"]
+        self.assertNotEqual(self.cli(*link, account="other").returncode, 0)
+        for _ in range(2):
+            self.assertEqual(self.cli(*link).returncode, 0)
+        updated = json.loads(self.cli("plan", sample).stdout)["replacements"][0]
+        self.assertEqual(len(updated["resources_found_separately"]), 1)
+        self.assertEqual(updated["goal_items_in_sample"], [])
+        self.assertEqual(self.cli(*answer, "plan family dinners").returncode, 0)
+        edited = json.loads(self.cli("plan", sample).stdout)["replacements"][0]
+        self.assertEqual(edited["resources_found_separately"], [])
+        self.assertEqual(self.cli("answer", sample, "--keep", goal).returncode, 0)
+        self.assertEqual(json.loads(self.cli("plan", sample).stdout)["replacements"], [])
+
+    def test_discovered_sources_can_be_prioritized_without_affecting_feed_sample(self):
+        self.enroll()
+        self.db.commit()
+        sample = self.sample["sample"]
+        goal = "family cooking"
+        self.assertEqual(self.cli("answer", sample, "--replace", "transfer rumors", goal, "cook together").returncode, 0)
+        # Two inspected items support the chosen goal, one unrelated post stays outside positive curation.
+        discovery = dict(self.sample, sample="candidate", surface="discovery", items=[
+            dict(self.sample["items"][0], topics=[goal], creator="cooking-demo"),
+            dict(self.sample["items"][2], topics=[goal], creator="cooking-demo"),
+            self.sample["items"][1]])
+        tool.ingest(self.db, self.scope, discovery)
+        result = tool.plan(self.db, self.scope, "candidate")
+        self.assertEqual([(a["control"], a["target"]) for a in result["pending"]], [("prioritize_source", "cooking-demo")])
+        self.assertEqual(len(result["replacements"][0]["goal_items_in_sample"]), 2)
+        home = tool.plan(self.db, self.scope, sample)
+        self.assertEqual(home["replacements"][0]["goal_items_in_sample"], [])
+        self.assertEqual([s["surface"] for s in tool.report(self.db, self.scope)["samples"]],
+                         ["recommendations", "discovery"])
+
     def test_general_menu_has_zero_personal_evidence(self):
         menus = {}
         for net in tool.NETWORKS:

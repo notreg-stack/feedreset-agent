@@ -28,10 +28,19 @@ def main():
         for option in menu["optional_reduce"][:3]:
             print(f"  {option['code']}  {option['label']}")
         print(menu["question"])
-        run("answer", audit["sample"], "--reduce", "transfer rumors", "--encourage", "worked examples",
-            "--protect", "my-friend", "--boost-sources", "--repair-youtube-history")
+        print("Viewer: I miss doing things with my daughter.")
+        print("Agent: Do you miss talking together, or making something together?")
+        print("Viewer: Cooking together. She wants to make Saturday breakfast with me.")
+        goal = "cooking with my daughter"
+        run("answer", audit["sample"], "--replace", "transfer rumors", goal, "make Saturday breakfast together",
+            "--encourage", "worked examples", "--protect", "my-friend", "--boost-sources", "--repair-youtube-history")
         result = run("plan", audit["sample"])
-        print("\nDemo owner: more worked examples, less transfer gossip; keep my friend.")
+        print(f"Goal in the original feed: {len(result['replacements'][0]['goal_items_in_sample'])} items.")
+        resource = run("save-resource", "transfer rumors", goal,
+                       "https://www.jamieoliver.com/recipes/healthy-breakfast-ideas/buddys-one-cup-pancakes/",
+                       "Buddy's one-cup pancakes", "Measure the ingredients and mix the batter together.")
+        print("Separately sourced example included in this demo:", resource["title"], "—", resource["reason"])
+        print(resource["url"])
         print("Current feed:", result["counts"])
         for action in result["pending"]:
             print("  Proposed:", action["control"], "→", action["label"])

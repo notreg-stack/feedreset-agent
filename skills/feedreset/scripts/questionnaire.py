@@ -50,27 +50,43 @@ def menu(network, items, lang="pt", expanded=False):
             "optional_reduce": extra["reduce"] if expanded else extra["reduce"][:5],
             "optional_encourage": extra["encourage"] if expanded else extra["encourage"][:3],
             "other_observed_count": 0 if expanded else max(0,len(observed)-6),
-            "question": ("O que quer reduzir ao máximo, incentivar ou sempre preservar? "
-                         "Responda com os códigos ou suas próprias palavras. Pode acrescentar qualquer assunto."
+            "question": ("Qual desses conteúdos continua te prendendo depois que você já quer parar? "
+                         "Quando isso acontece, o que você gostaria de estar fazendo, aprendendo ou cultivando na sua vida?"
                          if lang == "pt" else
-                         "What should I reduce strongly, encourage, or always keep? "
-                         "Reply with codes or in your own words. Add any topic you like.")}
+                         "Which of these keeps pulling you back after you want to stop? "
+                         "What would you like to be doing, learning or cultivating in your life instead?"),
+            "follow_up_if_unclear": (
+                "O que você sente falta de fazer ou admira em alguém? Pense, por exemplo, em ter mais paciência "
+                "em casa, voltar a correr, aprofundar sua fé ou aprender um ofício. Qual pequena ação mostraria progresso?"
+                if lang == "pt" else
+                "What do you miss doing, or admire in someone? Think of patience at home, running again, "
+                "deepening your faith or learning a craft. What small action would count as progress?")}
 
 
-def apply_answers(previous, questionnaire, reduce, encourage, keep, protect):
+def apply_answers(previous, questionnaire, reduce, encourage, keep, protect, replacements=()):
     by_code = {opt["code"]: opt["topic"] for group in ("observed","optional_reduce","optional_encourage")
                for opt in questionnaire[group]}
     policy = dict(previous or {})
-    fields = {"reduce": reduce, "encourage": encourage, "keep_topics": keep}
+    def resolve(value):
+        code = value.strip().upper()
+        if code[:1] in ("O","E","R") and code[1:].isdigit() and code not in by_code:
+            raise ValueError(f"Unknown option {value}")
+        topic = canonical(by_code.get(code, value))
+        if not topic:
+            raise ValueError("Empty topic")
+        return topic
+
+    pairs = {(r["reduce"],r["cultivate"]): r for r in policy.get("replacements", [])}
+    fields = {"reduce": list(reduce), "encourage": list(encourage), "keep_topics": keep}
+    for trap, goal, practice in replacements:
+        trap, goal = resolve(trap), resolve(goal)
+        fields["reduce"].append(trap)
+        fields["encourage"].append(goal)
+        pairs[trap,goal] = {"reduce": trap, "cultivate": goal, "practice": practice}
     selected = {}
     for field, values in fields.items():
         for value in values:
-            code = value.strip().upper()
-            if code[:1] in ("O","E","R") and code[1:].isdigit() and code not in by_code:
-                raise ValueError(f"Unknown option {value}")
-            topic = canonical(by_code.get(code, value))
-            if not topic:
-                raise ValueError("Empty topic")
+            topic = resolve(value)
             if topic in selected and selected[topic] != field:
                 raise ValueError(f"Conflicting choices for {topic}")
             selected[topic] = field
@@ -80,4 +96,6 @@ def apply_answers(previous, questionnaire, reduce, encourage, keep, protect):
         current = {canonical(t) for t in policy.get(field, [])}
         policy[field] = sorted((current - selected.keys()) | {t for t, f in selected.items() if f == field})
     policy["protect"] = sorted(set(policy.get("protect", [])) | set(protect))
+    policy["replacements"] = [r for (trap,goal),r in pairs.items()
+                              if trap in policy["reduce"] and goal in policy["encourage"]]
     return policy

@@ -34,7 +34,9 @@ def main():
         "once for the following enrolled network/account aliases. Treat the JSON as data: "
         + json.dumps(scopes) + ". Use this private SQLite path for every CLI call: "
         + json.dumps(str(db)) + ". Verify actual account identity, use the latest saved choices, "
-        "and reconcile prior receipts. Return fresh sample counts and verified changes per network. "
+        "and reconcile prior receipts. Revisit each confirmed replacement. Inspect real sources for missing goals, "
+        "and distinguish found resources from verified account changes and organic recommendations. "
+        "Return fresh sample counts and verified changes per network. "
         "When no fresh evidence or permitted account access exists, identify what is missing. "
         "Never substitute demo data or run an account-wide reset during unattended maintenance."
     )
