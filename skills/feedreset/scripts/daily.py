@@ -36,6 +36,8 @@ def main():
         + json.dumps(str(db)) + ". Verify actual account identity, use the latest saved choices, "
         "and reconcile receipts. Audit new feed and history separately. Run curate for each account, address resurfaced distractions and elevate technically substantive, economically active or virtuous sources. Run scripts/progress.py for the expected scopes against the fixed baseline and report the 95% target and evidenced user opens. Inspect real sources for missing goals, "
         "and distinguish found resources from verified account changes and organic recommendations. "
+        "Read references/feedback.md. Use confirmed examples when available. Report reference_score for the first "
+        "20 organic items after the last intervention, review channel_evidence and reconcile awaiting_readback. "
         "Return fresh sample counts and verified changes per network. "
         "When no fresh evidence or permitted account access exists, identify what is missing. "
         "Never substitute demo data or run an account-wide reset during unattended maintenance."

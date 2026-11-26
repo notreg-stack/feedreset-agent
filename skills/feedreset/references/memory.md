@@ -1,5 +1,7 @@
 # Local audit, choices and receipts
 
+For owner-approved discovery examples, fixed-window scores, YouTube channel IDs and unconfirmed submissions, see [the feedback workflow](feedback.md).
+
 Start the default workflow with `audit`, then `curate SAMPLE` per available account. The manual questionnaire below is optional. See [intentional curation and the 95% measure](intentional.md).
 
 Run from the skill directory. Python 3.9+ and its standard library suffice. Each invocation uses the same private database at `~/.feedreset/state.sqlite3`. Pass `--db PATH` before the subcommand for a different store. A consistent network/account pair is essential. Full data exports and screenshots belong outside the checkout.

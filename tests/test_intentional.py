@@ -133,3 +133,71 @@ class IntentionalTests(unittest.TestCase):
         later = tool.plan(self.db,self.scope,"later")
         self.assertFalse(later["pending"])
         self.assertEqual(later["resurfaced"][0]["prior_outcome"],"verified")
+
+    def test_owner_reference_scores_first_window_and_guides_sourcing(self):
+        ref = dict(good(90), focus="mechanics")
+        self.audit(self.scope,"library","2026-01-01",[ref,post(91)],surface="discovery")
+        with self.assertRaises(ValueError):
+            tool.approve(self.db,self.scope,"library",[],True)
+        tool.approve(self.db,self.scope,"library",["90"],False)
+        items = [dict(ref,id=str(i)) for i in range(19)] + [dict(ref,id="19",merit="unknown"),ref]
+        self.audit(self.scope,"run","2026-01-02",items)
+        review = self.curate("run")
+        score = review["plan"]["reference_score"]
+        self.assertEqual((score["aligned_pct"],score["organic_items"],score["items_needed_for_19_of_20"]),(95,20,0))
+        self.assertEqual(score["exact_reappearances"],[])
+        self.assertEqual(review["rebuild_proposal"]["source_priorities"][0]["example"]["item"],"90")
+        tool.put_policy(self.db,self.scope,{"reduce":["mechanics"]})
+        self.assertEqual(tool.plan(self.db,self.scope,"run")["reference_score"]["aligned_pct"],0)
+        self.assertEqual(tool.reference_score(self.db,"youtube/another",[ref],review["policy"])["status"],"no_approved_examples")
+
+    def test_recurring_channel_requires_distinct_comparable_clips_and_respects_counterevidence(self):
+        channel = "UC"+"x"*22
+        def clip(i):
+            return dict(post(i),source_id=channel)
+        self.audit(self.scope,"old","2026-01-01",[clip(0)])
+        self.audit(self.scope,"a","2026-03-01",[clip(1)])
+        self.audit(self.scope,"seen-again","2026-03-02",[clip(1)])
+        self.audit(self.scope,"other-device","2026-03-02",[clip(3)],device="desktop")
+        self.assertEqual(self.curate("seen-again")["plan"]["channel_evidence"],{})
+        self.audit(self.scope,"b","2026-03-03",[clip(2)])
+        result = self.curate("b")["plan"]
+        self.assertEqual(set(result["channel_evidence"][channel]),{"1","2"})
+        self.assertIn("dont_recommend_channel",[a["control"] for a in result["pending"]])
+        self.audit(self.scope,"useful","2026-03-04",[dict(good(9),source_id=channel)],surface="discovery")
+        self.audit(self.scope,"c","2026-03-05",[clip(4)])
+        self.assertEqual(self.curate("c")["plan"]["channel_evidence"],{})
+        tool.approve(self.db,self.scope,"useful",[],True)
+        self.assertEqual(tool.plan(self.db,self.scope,"b")["channel_evidence"],{})
+        with self.assertRaises(ValueError):
+            self.audit(self.scope,"ambiguous","2026-03-05",[dict(post(5),source_id="Demo Display Name")])
+
+    def test_unconfirmed_feedback_can_gain_a_receipt_without_replaying_the_click(self):
+        from types import SimpleNamespace
+        self.audit(self.scope,"feed","2026-01-01",[post(1)])
+        action = self.curate("feed")["plan"]["pending"][0]["id"]
+        args = SimpleNamespace(sample="feed",reset_request=None,action=action,
+                               outcome="submitted_unconfirmed",evidence="Menu closed")
+        tool.record(self.db,self.scope,args)
+        plan = tool.plan(self.db,self.scope,"feed")
+        self.assertEqual(plan["awaiting_readback"][0]["id"],action)
+        self.assertEqual(plan["pending"],[])
+        args.outcome, args.evidence = "verified", "Native acknowledgement"
+        tool.record(self.db,self.scope,args)
+        self.assertEqual(tool.plan(self.db,self.scope,"feed")["awaiting_readback"],[])
+
+    def test_cli_unapprove_and_missing_reference_are_distinct_from_zero_matches(self):
+        self.audit(self.scope,"catalog","2026-01-01",[good(7)],surface="discovery")
+        self.audit(self.scope,"feed","2026-01-02",[post(1)])
+        self.curate("feed")
+        cmd = [sys.executable,str(SCRIPTS/"feedreset.py"),"--db",str(self.path),
+               "--network","youtube","--account","demo"]
+        def run(*args):
+            return json.loads(subprocess.check_output(cmd+list(args),text=True))
+        run("approve","catalog","--all")
+        run("approve","catalog","--items","7")
+        score = run("plan","feed")["reference_score"]
+        self.assertEqual((score["approved_examples"],score["status"],score["aligned_pct"]),(1,"partial",0))
+        self.assertIsNone(score["items_needed_for_19_of_20"])
+        self.assertEqual(run("unapprove","7")["removed"],1)
+        self.assertIsNone(run("plan","feed")["reference_score"]["aligned_pct"])

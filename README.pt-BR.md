@@ -1,5 +1,7 @@
 # FeedReset
 
+Você pode aprovar vídeos de referência e conferir quantos dos próximos 20 Reels ou Shorts têm assunto e qualidade comparáveis. O agente também identifica canais recorrentes por ID e registra a resposta da plataforma aos cortes. [Aula prática de curadoria](skills/feedreset/references/aula.md)
+
 **Tire o que prende a atenção no automático e coloque no lugar conteúdo que eleva o nível do que você assiste.** Sua IA examina as redes disponíveis, identifica no histórico trabalho econômico real, qualidade técnica e práticas que valem cultivar. Ela planeja uma reconstrução, aplica as ações compatíveis e volta diariamente para corrigir o retrocesso.
 
 ## Comece com esta mensagem

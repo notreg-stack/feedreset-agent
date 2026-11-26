@@ -4,19 +4,20 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 from questionnaire import apply_answers, canonical, menu
-from intentional import MERITS, derive
+from intentional import MERITS, derive, quality_evidence
 
 NETWORKS = ("instagram", "youtube", "tiktok", "x")
 KINDS = ("encourage", "reduce", "uncertain")
 SURFACES = ("recommendations", "following", "history", "discovery")
-OUTCOMES = ("verified", "user_reported", "needs_device", "unavailable")
+OUTCOMES = ("verified", "user_reported", "submitted_unconfirmed", "needs_device", "unavailable")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS samples (
   scope TEXT, sample TEXT, day TEXT, surface TEXT, data TEXT,
@@ -31,6 +32,9 @@ CREATE TABLE IF NOT EXISTS resources (
   scope TEXT, trap TEXT, goal TEXT, practice TEXT, url TEXT, title TEXT, reason TEXT,
   PRIMARY KEY(scope,trap,goal,practice,url));
 CREATE TABLE IF NOT EXISTS baselines (scope TEXT PRIMARY KEY, sample TEXT);
+CREATE TABLE IF NOT EXISTS approved_examples (
+  scope TEXT, item TEXT, sample TEXT, focus TEXT, label TEXT, reason TEXT, url TEXT, source_id TEXT,
+  PRIMARY KEY(scope,item));
 """
 
 def require(condition, message):
@@ -93,6 +97,8 @@ def normalize_item(value):
         require(value["entry"] in ("user-opened","autoplay","unknown"), "Unknown history entry provenance")
         item["entry"] = value["entry"]
     item["creator"] = string(value["creator"], "creator") if value.get("creator") else ""
+    if value.get("source_id"):
+        item["source_id"] = string(value["source_id"], "source_id")
     url = value.get("url", "")
     require(isinstance(url, str), "url must be text")
     item["url"] = public_link(url) if url else ""
@@ -151,6 +157,9 @@ def ingest(db, scope, raw):
     feed = string(raw.get("feed", surface), "feed")
     require(isinstance(raw.get("items"), list) and raw["items"], "Supply at least one real item")
     items = [normalize_item(i) for i in raw["items"]]
+    if scope.startswith("youtube/"):
+        require(all(not i.get("source_id") or re.fullmatch(r"UC[A-Za-z0-9_-]{22}", i["source_id"])
+                    for i in items), "Use the YouTube channel ID for source_id, or omit it")
     require(len({i["id"] for i in items}) == len(items), "Repeated item id within sample")
     data = json.dumps(items, ensure_ascii=False)
     existing = db.execute("SELECT day,surface,data FROM samples WHERE scope=? AND sample=?",
@@ -182,6 +191,8 @@ def sample_context(db, scope, row):
 def decision(item, policy):
     if norm(item["creator"]).lstrip("@") in policy["protect"]:
         return "protect"
+    if item.get("source_id") and norm(item["source_id"]) in policy["protect"]:
+        return "protect"
     topics = {canonical(t) for t in item["topics"]}
     if topics.intersection(policy.get("keep_topics", [])):
         return "protect"
@@ -200,6 +211,71 @@ def decision(item, policy):
 
 def action_id(control, target):
     return hashlib.sha256(json.dumps([control, target]).encode()).hexdigest()[:24]
+
+
+def approve(db, scope, sample, ids, all_items):
+    row, items = sample_data(db, scope, sample)
+    require(row["surface"] == "discovery", "Approve examples from an audited discovery sample")
+    chosen = items if all_items else [item for item in items if item["id"] in ids]
+    require(chosen and (all_items or len(chosen) == len(set(ids))), "Unknown or empty selection")
+    require(all(quality_evidence(i) for i in chosen), "Each example needs a focus and substantive evidence")
+    db.executemany("INSERT OR REPLACE INTO approved_examples VALUES (?,?,?,?,?,?,?,?)",
+                   [(scope, i["id"], sample, i["focus"], i["label"], i["reason"], i["url"], i.get("source_id"))
+                    for i in chosen])
+    return {"scope": scope, "approved": [i["id"] for i in chosen]}
+
+
+def reference_score(db, scope, items, policy):
+    examples = list(db.execute("SELECT item,focus FROM approved_examples WHERE scope=?", (scope,)))
+    focuses = {row["focus"] for row in examples}
+    reference_ids = {row["item"] for row in examples}
+    window = items[:20]
+    matches = []
+    for item in window:
+        choice = decision(item, policy)
+        reduced = set(item["topics"]).intersection(policy["reduce"])
+        if (quality_evidence(item) and item["focus"] in focuses
+                and (choice == "protect" or not reduced)):
+            matches.append(item["id"])
+    status = "complete" if len(window) == 20 else "partial"
+    return {"status": status if examples else "no_approved_examples",
+            "approved_examples": len(examples), "organic_items": len(window),
+            "aligned_items": matches, "aligned_pct": round(100 * len(matches) / len(window), 2) if examples else None,
+            "exact_reappearances": [i["id"] for i in window if i["id"] in reference_ids],
+            "items_needed_for_19_of_20": 19 - min(19, len(matches)) if examples and len(window) == 20 else None}
+
+
+def recurring_channels(db, scope, row, items, policy):
+    candidates = {i["source_id"] for i in items if i.get("source_id") and decision(i, policy) == "reduce"}
+    candidates.difference_update(r["source_id"] for r in db.execute(
+        "SELECT DISTINCT source_id FROM approved_examples WHERE scope=?", (scope,)))
+    if not candidates:
+        return {}
+    context = sample_context(db, scope, row)
+    since = (date.fromisoformat(row["day"]) - timedelta(days=30)).isoformat()
+    samples = db.execute("""
+        SELECT s.data,s.surface,c.device,c.feed FROM samples s LEFT JOIN contexts c USING(scope,sample)
+        WHERE s.scope=?
+          AND s.day>=? AND (s.day, s.rowid) <=
+              (SELECT day,rowid FROM samples WHERE scope=? AND sample=?)
+        ORDER BY s.day,s.rowid""", (scope, since, scope, row["sample"]))
+    evidence = {source: {} for source in candidates}
+    mixed = set()
+    for sample in samples:
+        comparable = (sample["surface"] == "recommendations" and sample["device"] == context["device"]
+                      and sample["feed"] == context["feed"])
+        for item in json.loads(sample["data"]):
+            source = item.get("source_id")
+            if source not in candidates:
+                continue
+            if (item.get("merit") == "low-value" and item["suggest"] == "reduce"
+                    and decision(item, policy) == "reduce"):
+                if comparable:
+                    evidence[source][item["id"]] = item["reason"]
+            else:
+                mixed.add(source)
+    return {source: reasons for source, reasons in sorted(evidence.items())
+            if len(reasons) >= 2 and source not in mixed}
 
 
 def save_resource(db, scope, args):
@@ -267,10 +343,18 @@ def plan(db, scope, sample, reset=False):
         require(row["surface"] == "recommendations", "A reset requires a recommendations baseline")
         # Stable across samples. A used reset stays consumed until a new explicit reset request.
         actions.append(("reset_suggestions", reset, "Account-wide recommendation reset"))
-    pending, resurfaced = [], []
+    channel_evidence = {}
+    if network == "youtube" and row["surface"] == "recommendations":
+        channel_evidence = recurring_channels(db, scope, row, items, policy)
+        actions.extend(("dont_recommend_channel", source, source) for source in channel_evidence)
+    pending, resurfaced, awaiting_readback = [], [], []
     for control, target, label in actions:
         aid = action_id(control, target)
         existing = db.execute("SELECT outcome,last_sample FROM actions WHERE scope=? AND id=?", (scope, aid)).fetchone()
+        if existing and existing["outcome"] == "submitted_unconfirmed" and (
+                existing["last_sample"] == sample or control != "less_like_this"):
+            awaiting_readback.append({"id": aid, "control": control, "target": target})
+            continue
         if existing and existing["outcome"] in ("verified", "user_reported"):
             if control == "less_like_this" and existing["last_sample"] != sample:
                 prior, _ = sample_data(db, scope, existing["last_sample"])
@@ -280,6 +364,8 @@ def plan(db, scope, sample, reset=False):
         pending.append({"id": aid, "control": control, "target": target, "label": label,
                         "previous_outcome": existing["outcome"] if existing else None})
     return {"scope": scope, "sample": sample, "surface": row["surface"], "counts": counts,
+            "reference_score": reference_score(db, scope, items, policy) if row["surface"] == "recommendations" else None,
+            "channel_evidence": channel_evidence, "awaiting_readback": awaiting_readback,
             "reading_queue": reading, "pending": pending, "resurfaced": resurfaced,
             "replacements": replacement_plan(db, scope, policy, items)}
 
@@ -287,12 +373,15 @@ def plan(db, scope, sample, reset=False):
 def record(db, scope, args):
     actions = plan(db, scope, args.sample, args.reset_request)["pending"]
     action = next((a for a in actions if a["id"] == args.action), None)
-    existing = db.execute("SELECT evidence,outcome FROM actions WHERE scope=? AND id=?",
+    existing = db.execute("SELECT evidence,outcome,last_sample FROM actions WHERE scope=? AND id=?",
                           (scope, args.action)).fetchone()
     evidence = string(args.evidence, "evidence")
-    if existing and tuple(existing) == (evidence, args.outcome):
+    if existing and (existing["evidence"], existing["outcome"]) == (evidence, args.outcome):
         return {"id": args.action, "outcome": args.outcome}
-    if action is None and existing and existing["outcome"] == "user_reported" and args.outcome == "verified":
+    if (action is None and existing and
+            ((existing["outcome"] == "user_reported" and args.outcome == "verified") or
+             (existing["outcome"] == "submitted_unconfirmed" and existing["last_sample"] == args.sample
+              and args.outcome in ("verified", "user_reported", "needs_device", "unavailable")))):
         db.execute("UPDATE actions SET outcome=?,evidence=? WHERE scope=? AND id=?",
                    (args.outcome, evidence, scope, args.action))
     else:
@@ -323,6 +412,12 @@ def main():
     parser.add_argument("--network", required=True, choices=NETWORKS)
     parser.add_argument("--account", required=True, help="Stable account alias on this network")
     commands = parser.add_subparsers(dest="command", required=True)
+    sub = commands.add_parser("approve", help="Record the owner's chosen discovery examples")
+    sub.add_argument("sample")
+    group = sub.add_mutually_exclusive_group(required=True)
+    group.add_argument("--items", nargs="+")
+    group.add_argument("--all", action="store_true")
+    commands.add_parser("unapprove", help="Remove items from the private reference set").add_argument("items", nargs="+")
     sub = commands.add_parser("curate", help="Apply the intentional curation profile and learn from audited history")
     sub.add_argument("sample", nargs="?", help="Current organic recommendation sample; first one anchors progress")
     for name in ("audit", "policy"):
@@ -361,6 +456,12 @@ def main():
             db.execute("BEGIN IMMEDIATE")
             if args.command == "audit":
                 result = ingest(db, scope, read_json(args.file))
+            elif args.command == "approve":
+                result = approve(db, scope, args.sample, args.items or [], args.all)
+            elif args.command == "unapprove":
+                removed = db.executemany("DELETE FROM approved_examples WHERE scope=? AND item=?",
+                                         [(scope, item) for item in set(args.items)])
+                result = {"scope": scope, "removed": removed.rowcount}
             elif args.command == "policy":
                 result = put_policy(db, scope, read_json(args.file))
             elif args.command == "curate":

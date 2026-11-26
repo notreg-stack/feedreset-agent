@@ -19,6 +19,10 @@ Use the owner's language. When a person requests intentional curation, start acr
 
 ## Daily maintenance
 
+When the owner approves examples, audit the selection as discovery and use `approve` to keep those choices privately per account. Use the example and reason in each sourcing direction to find other items with the same practical value. Write a neutral sentence describing what each candidate actually shows. Inspect the description, captions or demonstration when the headline gives too little evidence.
+
+For each intervention round, collect the first 20 consecutive organic recommendations after the final action. Log positions of ads separately and include ambiguous organic items. In `plan.reference_score` report the aligned fraction, exact repeats and distance to 19/20. Check `channel_evidence` for recurring YouTube publishers and verify the channel identity and the user's exceptions in the native UI before applying a channel control. Use `submitted_unconfirmed` when a click only closes a menu. [Commands and worked strategy](references/feedback.md)
+
 - Check all enrolled accounts every day. Reapply explicit corrections, sample the same recommendation feed and device, and audit new history independently. Run `curate` again. Preserve useful learning when a single unwanted click reappears. Do not reset the baseline or repeat a broad reset every day.
 - Act on new low-value recommendations. When a previously handled item resurfaces, check the prior receipt and consider a supported source-level or topic-level control with sufficient evidence. Use a new recommendation sample after any intervention; verify control availability rather than scripting unsupported actions.
 - Put a better click within reach: a direct worked example, business case or useful practice, plus a verified native priority control when available. Where history shows the person still opens unwanted content, change the entry point (e.g. a pinned private List or chosen subscriptions) and improve the substitute's relevance. Preserve owner exceptions. Never manufacture watch time, likes, clicks or follows to inflate a result.

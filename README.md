@@ -4,6 +4,8 @@
 
 [Português](README.pt-BR.md) · [Download the agent](https://github.com/notreg-stack/feedreset-agent/releases/latest) · [How 95% is measured](skills/feedreset/references/intentional.md)
 
+Approve examples once. FeedReset uses them to select replacements and scores the first 20 organic recommendations after a round of changes. The report also identifies recurring YouTube channels by channel ID and keeps receipts for native feedback. [Example-driven curation and commands](skills/feedreset/references/feedback.md)
+
 ## Give this to your AI
 
 > Open https://github.com/notreg-stack/feedreset-agent and follow skills/feedreset/SKILL.md. Audit all my available feeds and history. Cut memes, viral entertainment, repetitive comedy, politics and football. Find the virtuous practice, real economic work and technical depth I've already engaged with. Rebuild around stronger sources, preserve my exceptions and maintain the result daily. Act on the evidence and ask only when my answer would materially change a decision.

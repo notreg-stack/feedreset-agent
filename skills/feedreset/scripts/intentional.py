@@ -37,12 +37,21 @@ def derive(db, scope, current, feed_items, day):
     for item in feed_items:
         if item["suggest"] == "reduce" and item.get("focus"):
             recurring[canonical(item["focus"])].add(item["id"])
-    reduce = set(DEFAULT_REDUCE) | {focus for focus, ids in recurring.items() if len(ids) >= 2}
+    examples = list(db.execute("SELECT item,focus,label,reason,url FROM approved_examples WHERE scope=? ORDER BY item",
+                               (scope,)))
+    approved_subjects = {r["focus"] for r in examples}
+    reduce = set(DEFAULT_REDUCE) | {focus for focus, ids in recurring.items()
+                                    if len(ids) >= 2 and focus not in approved_subjects}
     encourage = set(DEFAULT_ENCOURAGE) | set(history)
     conflicts = reduce & encourage
     for field, candidates in (("reduce", reduce), ("encourage", encourage)):
         policy[field] = sorted(set(policy.get(field, [])) | (candidates - assigned - conflicts))
     ranked = sorted(history, key=lambda t: (-len(history[t]), t))
+    references = defaultdict(list)
+    for example in examples:
+        if example["focus"] not in policy["reduce"]:
+            references[example["focus"]].append(dict(example))
+    approved_focuses = sorted(references, key=lambda focus: (-len(references[focus]), focus))
     goals = [t for t in dict.fromkeys(ranked + list(DEFAULT_ENCOURAGE)) if t in policy["encourage"]]
     replacements = list(policy.get("replacements", []))
     owner_traps = {r["reduce"] for r in replacements if r.get("origin", "owner") == "owner"}
@@ -58,16 +67,18 @@ def derive(db, scope, current, feed_items, day):
     policy["replacements"] = replacements
     # Allocate a proposed mix of organic slots. This is a sourcing brief, never an observed result.
     target_slots = (95 * len(feed_items) + 99) // 100
-    priorities = list(dict.fromkeys([*ranked, *DEFAULT_ENCOURAGE, *policy["encourage"]]))
-    priorities = [t for t in priorities if t in policy["encourage"]][:3]
+    other_priorities = [t for t in [*ranked, *DEFAULT_ENCOURAGE, *policy["encourage"]] if t in policy["encourage"]]
+    priorities = list(dict.fromkeys([*approved_focuses, *other_priorities]))[:3]
     sourcing = []
     if priorities and target_slots:
         each, extra = divmod(target_slots, len(priorities))
         for i, goal in enumerate(priorities):
             slots = each + int(i < extra)
             if slots:
-                sourcing.append({"focus": goal, "proposed_slots": slots,
-                                 "basis": "history" if goal in history else "policy"})
+                direction = {"focus": goal, "proposed_slots": slots, "basis": "history" if goal in history else "policy"}
+                if goal in references:
+                    direction.update(basis="approved_examples", example=references[goal][0])
+                sourcing.append(direction)
     return policy, {
         "rebuild_proposal": {"target_pct": 95, "baseline_or_current_slots": len(feed_items),
                              "minimum_target_slots": target_slots, "source_priorities": sourcing},

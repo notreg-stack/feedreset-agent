@@ -36,13 +36,16 @@ def main():
             history = [dict(item(0,False,"h"),entry="user-opened"), dict(item(1,True,"h"),entry="user-opened"),
                        dict(item(2,False,"h"),entry="autoplay")]
             audit("prior-views","2026-01-01","history",history)
+            audit("workshop-examples","2026-01-01","discovery",[item(0,True,"library")])
+            run("approve","workshop-examples","--all")
             audit("baseline","2026-01-01","recommendations",[item(i,False,"b") for i in range(20)])
             review = run("curate","baseline")
             audit("later","2026-01-02","recommendations",[item(i,i < 19,"n") for i in range(20)])
             audit("later-views","2026-01-02","history",[dict(item(i,True,"h2"),entry="user-opened") for i in range(2)])
-            run("curate","later")
+            score = run("curate","later")["plan"]["reference_score"]
             print(f"{net}: proposed {len(review['plan']['pending'])} item controls; "
-                  f"history seed: {review['history_directions'][0]['focus']}.")
+                  f"{len(score['aligned_items'])}/{score['organic_items']} later recommendations "
+                  f"match the approved workshop focus with substantive evidence.")
         cmd = [sys.executable,str(SCRIPTS/"progress.py"),"--db",db,"--day","2026-01-02"]
         result = json.loads(subprocess.check_output(cmd,text=True))
         print(f"Simulated later samples: {result['reoriented_pct_for_requested_scopes']}% reoriented.")
